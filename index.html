@@ -1,0 +1,1086 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#121a21">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gaita">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png?v=1.2.0">
+</head>
+<body>
+<title>Gaita de Bolso</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@700;800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one-screen phone app. Dark header, scrolling view, transport bar, bottom tabs.
+   Steel covers + wooden comb. Direction is encoded by color: blow (sopro) = steel blue, draw (puxa) = clay red. */
+:root{
+  --bg:#edf0f2;
+  --surface:#fbfcfd;
+  --surface-2:#e1e6ea;
+  --ink:#16212b;
+  --muted:#566472;
+  --line:#c7d0d7;
+  --blow:#1d67a8;
+  --draw:#b8412a;
+  --bend:#7a4bb0;
+  --accent:#9a6400;
+  --on-accent:#ffffff;
+  --hl:#f6e2a6;
+  --comb:#c99a63;
+  --font-display:"Bitter", Rockwell, Georgia, serif;
+  --font-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e141a; --surface:#161f27; --surface-2:#1f2a34; --ink:#e6edf2; --muted:#97a6b3; --line:#2b3843;
+    --blow:#6db6f2; --draw:#ff8d70; --bend:#c39af0; --accent:#f0b23a; --on-accent:#1a1208; --hl:#4a3f1c; --comb:#8a6640;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e141a; --surface:#161f27; --surface-2:#1f2a34; --ink:#e6edf2; --muted:#97a6b3; --line:#2b3843;
+  --blow:#6db6f2; --draw:#ff8d70; --bend:#c39af0; --accent:#f0b23a; --on-accent:#1a1208; --hl:#4a3f1c; --comb:#8a6640;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 var(--font-body);overflow:hidden;-webkit-tap-highlight-color:transparent}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--blow);outline-offset:2px}
+.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.app{position:fixed;inset:0;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto auto}
+/* cabeçalho sempre escuro: o texto branco da barra de status do iPhone fica legível nos dois temas */
+.top{--surface-2:#1f2a34;--ink:#e6edf2;--muted:#a3b1bd;--line:#2b3843;--accent:#f0b23a;color-scheme:dark;color:var(--ink);
+  display:flex;align-items:center;gap:10px;padding-top:calc(14px + env(safe-area-inset-top,0px));padding-bottom:12px;background:#121a21;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:9px;flex:none}
+.brand h1{font:800 clamp(1.05rem,5vw,1.3rem)/1 var(--font-display);margin:0;white-space:nowrap}
+.logo{width:34px;height:20px;flex:none}
+.keysel{display:flex;align-items:center;gap:6px;flex:1 1 0;min-width:0;justify-content:flex-end}
+.keysel label{font-size:.72rem;color:var(--muted);white-space:nowrap}
+.sel{position:relative}
+.sel select{appearance:none;-webkit-appearance:none;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:6px 26px 6px 12px;font:700 .9rem var(--font-mono)}
+.sel::after{content:"▾";position:absolute;right:10px;top:50%;transform:translateY(-52%);pointer-events:none;color:var(--muted);font-size:.8rem}
+.infobtn{width:36px;height:36px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);display:grid;place-items:center;padding:0}
+.infobtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
+.infobtn[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+
+main{overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+.view{max-width:780px;margin-inline:auto;padding-block:18px 32px;display:flex;flex-direction:column;gap:18px}
+.eyebrow{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 4px}
+h2{font:800 1.55rem/1.1 var(--font-display);margin:0;text-wrap:balance}
+h3{font:700 1.2rem/1.15 var(--font-display);margin:0;text-wrap:balance}
+.intro{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 8px}
+.legend{margin:0;font-size:.8rem;color:var(--muted)}
+.legend b{font-family:var(--font-mono);color:var(--ink)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.card-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.badge{font:700 .72rem var(--font-mono);padding:3px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.desc{margin:0;max-width:62ch}
+.tip{margin:0;font-size:.9rem;padding:10px 12px;border-radius:8px;border-left:3px solid var(--accent);background:var(--surface-2)}
+.facts{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;margin:0;font-size:.9rem}
+.facts dt{color:var(--muted)}
+.facts dd{margin:0;font-weight:700}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;background:var(--surface)}
+.seg button{border:0;background:none;border-radius:999px;padding:5px 12px;font-size:.82rem;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface-2);color:var(--ink);font-weight:700}
+.opts{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end}
+.opt{display:flex;flex-direction:column;gap:6px}
+.opt .lbl{margin:0}
+
+/* mapa da gaita */
+.harp{display:grid;grid-template-columns:2.6rem repeat(10,minmax(0,1fr));gap:3px;font-family:var(--font-mono)}
+.harp .rl{font:700 .58rem/1.1 var(--font-body);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center}
+.harp .hc{border:0;border-radius:6px;min-height:2.3rem;padding:2px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.74rem;font-weight:700;background:var(--surface-2);color:var(--ink);line-height:1.1}
+.harp .hc small{font-size:.56rem;font-weight:500;opacity:.8}
+.harp .hc.blow{background:color-mix(in srgb,var(--blow) 18%,var(--surface));color:var(--blow)}
+.harp .hc.draw{background:color-mix(in srgb,var(--draw) 18%,var(--surface));color:var(--draw)}
+.harp .hc.bend{background:color-mix(in srgb,var(--bend) 14%,var(--surface));color:var(--bend)}
+.harp .hc.ob{background:transparent;border:1px dashed var(--bend);color:var(--bend)}
+.harp .hc.on{outline:2px solid var(--accent);outline-offset:1px}
+.harp .hole{min-height:2.1rem;display:grid;place-items:center;font:800 .95rem var(--font-mono);color:var(--ink);background:linear-gradient(var(--comb),var(--comb)) center/70% 70% no-repeat;border-radius:4px}
+.harp .hole span{background:var(--surface);border-radius:3px;padding:0 4px}
+.harp .gap{min-height:0}
+.positions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.pos{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:2px;background:var(--surface)}
+.pos b{font:800 1.4rem var(--font-display)}
+.pos span{font-size:.78rem;color:var(--muted)}
+.which{display:flex;flex-direction:column;gap:6px;font-size:.92rem}
+.which p{margin:0}
+.which b{font-family:var(--font-mono)}
+
+/* tablatura */
+.tab{display:flex;flex-wrap:wrap;gap:6px 4px;align-items:stretch}
+.nt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:2.5rem;padding:6px 4px;border-radius:8px;background:var(--surface-2);border:1px solid transparent;transition:background-color .06s}
+.nt .tk{font:700 1rem/1 var(--font-mono)}
+.nt .nn{font-size:.62rem;color:var(--muted)}
+.nt .du{display:flex;gap:2px;height:4px;margin-top:2px}
+.nt .du i{width:4px;height:4px;border-radius:50%;background:var(--muted);opacity:.55}
+.nt.blow .tk{color:var(--blow)}
+.nt.draw .tk{color:var(--draw)}
+.nt.bent .tk{color:var(--bend)}
+.nt.chord .tk{font-size:.86rem}
+.nt.rest{background:none;border:1px dashed var(--line)}
+.nt.on{background:var(--hl);border-color:var(--accent)}
+.bar{width:2px;background:var(--line);border-radius:1px;margin-inline:3px}
+.plist{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.pitem{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 12px;padding:12px 4px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left}
+.pitem .pn{font-weight:700}
+.pitem .pf{grid-column:1;font:500 .78rem var(--font-mono);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pitem .pk{grid-row:1 / span 2;grid-column:2}
+.pitem[aria-pressed="true"] .pn{color:var(--accent)}
+.pitem[aria-pressed="true"] .pk{background:var(--accent);color:var(--on-accent)}
+.lvl{margin:0;padding:16px 4px 6px;font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--accent);font-weight:700;border-bottom:1px solid var(--line)}
+
+/* transporte e abas */
+.transport{display:flex;align-items:center;gap:12px;padding-block:8px;background:var(--surface);border-top:1px solid var(--line)}
+.playbtn{width:48px;height:48px;border-radius:50%;background:var(--accent);color:var(--on-accent);border:0;display:grid;place-items:center;flex:none}
+.playbtn svg{width:22px;height:22px;fill:currentColor}
+.bpm{display:flex;align-items:center;gap:8px;flex:1 1 180px;min-width:0}
+.bpm output{font:700 1rem var(--font-mono);min-width:3ch;text-align:right;font-variant-numeric:tabular-nums}
+.bpm span{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.bpm input{flex:1;min-width:0;accent-color:var(--accent)}
+.toggles{display:flex;gap:6px}
+.tgl{width:40px;height:40px;border:1px solid var(--line);background:var(--surface);border-radius:50%;display:grid;place-items:center;color:var(--muted);padding:0}
+.tgl svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.tgl[aria-pressed="true"]{border-color:var(--blow);color:var(--blow);background:var(--surface-2)}
+.nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav button{background:none;border:0;padding:8px 0 9px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.72rem;color:var(--muted);min-width:0}
+.nav button[aria-current="page"]{color:var(--accent);font-weight:700}
+.nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.action{align-self:flex-start;border:0;border-radius:999px;background:var(--accent);color:var(--on-accent);font-weight:700;padding:10px 18px}
+.action:disabled{opacity:.6}
+.logv{font:700 .8rem var(--font-mono);color:var(--accent)}
+/* jam */
+.chart{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.chart div{border:1px solid var(--line);border-radius:6px;padding:6px 4px;display:flex;flex-direction:column;align-items:center;background:var(--surface);transition:background-color .06s}
+.chart b{font:800 1.05rem var(--font-display)}
+.chart small{font:700 .6rem var(--font-mono);color:var(--muted)}
+.chart div.iv b{color:var(--accent)}
+.chart div.v b{color:var(--bend)}
+.chart div.on{background:var(--hl);border-color:var(--accent)}
+.jbars{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.jbar{border:1px solid var(--line);border-radius:10px;padding:6px;display:flex;flex-direction:column;gap:5px;background:var(--bg)}
+.jbar.on{border-color:var(--accent)}
+.jbar .jh{display:flex;justify-content:space-between;font:700 .72rem var(--font-mono);color:var(--muted)}
+.jbar .jh b{color:var(--ink);font-family:var(--font-display);font-size:.9rem}
+.jbar .tab{gap:4px 3px}
+.jbar .nt{padding:4px 2px}
+.jbar .nt .tk{font-size:.86rem}
+.mix{display:flex;flex-wrap:wrap;gap:8px}
+.chipb{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 12px;font-size:.84rem;font-weight:700;color:var(--muted)}
+.chipb[aria-pressed="true"]{border-color:var(--accent);color:var(--ink);background:var(--surface-2)}
+.yt{display:flex;flex-direction:column;gap:10px}
+.yt a.linkbtn{align-self:flex-start;border:1px solid var(--line);border-radius:999px;padding:9px 14px;font-weight:700;color:var(--ink);text-decoration:none;background:var(--surface-2)}
+.yt .row{display:flex;gap:6px}
+.yt input{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--surface);font-size:.9rem}
+.yt .row button{border:1px solid var(--line);border-radius:8px;background:var(--surface-2);padding:0 12px;font-weight:700}
+.ytframe{position:relative;width:100%;max-width:560px;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#000}
+.ytframe iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+#ab-log .pf{font:400 .9rem/1.4 var(--font-body);color:var(--ink);white-space:normal}
+.ok-badge{background:var(--blow)!important;color:var(--surface)!important}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <header class="top gutter">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 68 40" aria-hidden="true">
+        <rect x="1" y="4" width="66" height="32" rx="5" fill="#c9d2da"/>
+        <rect x="1" y="15" width="66" height="10" fill="#c99a63"/>
+        <g fill="#121a21"><rect x="5" y="17" width="4" height="6" rx="1"/><rect x="11.4" y="17" width="4" height="6" rx="1"/><rect x="17.8" y="17" width="4" height="6" rx="1"/><rect x="24.2" y="17" width="4" height="6" rx="1"/><rect x="30.6" y="17" width="4" height="6" rx="1"/><rect x="37" y="17" width="4" height="6" rx="1"/><rect x="43.4" y="17" width="4" height="6" rx="1"/><rect x="49.8" y="17" width="4" height="6" rx="1"/><rect x="56.2" y="17" width="4" height="6" rx="1"/><rect x="62.6" y="17" width="3" height="6" rx="1"/></g>
+      </svg>
+      <h1>Gaita de Bolso</h1>
+    </div>
+    <div class="keysel">
+      <label for="key">Gaita em</label>
+      <div class="sel"><select id="key" aria-label="Tom da gaita"></select></div>
+    </div>
+    <button type="button" class="infobtn" id="infobtn" aria-label="Sobre o app e versão" title="Sobre">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r=".6" fill="currentColor"/></svg>
+    </button>
+  </header>
+
+  <main id="main">
+    <section class="view gutter" id="v-gaita">
+      <div>
+        <p class="eyebrow">Mapa da gaita</p>
+        <h2 id="g-title">Gaita diatônica em C</h2>
+        <p class="intro">Afinação Richter, 10 furos. Toque em qualquer nota para ouvir. Os bends deslizam a partir da nota natural, como na gaita de verdade.</p>
+      </div>
+      <div class="card">
+        <div class="harp" id="harp" role="group" aria-label="Notas por furo"></div>
+        <p class="legend"><b style="color:var(--blow)">sopro</b> · <b style="color:var(--draw)">puxa</b> · <b style="color:var(--bend)">bend</b> (cada ' abaixa meio tom) · tracejado: <b style="color:var(--bend)">overblow / overdraw</b> (técnica avançada)</p>
+      </div>
+      <div class="opts">
+        <div class="opt"><span class="lbl">Notação da tablatura</span>
+          <div class="seg" id="o-nota"><button type="button" data-v="plus">+4 / -4</button><button type="button" data-v="plain">4 / -4</button></div></div>
+      </div>
+      <div>
+        <p class="lbl">Posições nesta gaita</p>
+        <div class="positions" id="positions"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Qual gaita usar?</h3></div>
+        <div class="opts"><div class="opt"><span class="lbl">A música está em</span><div class="sel" style="align-self:flex-start"><select id="songkey" aria-label="Tom da música"></select></div></div></div>
+        <div class="which" id="which"></div>
+      </div>
+    </section>
+
+    <section class="view gutter" id="v-licoes" hidden>
+      <div>
+        <p class="eyebrow">Lições</p>
+        <h2>Do primeiro furo ao overblow</h2>
+        <p class="intro">Siga em ordem. Só passe para a próxima quando a atual soar limpa, uma nota por vez, no andamento indicado.</p>
+      </div>
+      <div class="card" id="st-licoes"></div>
+      <div class="plist" id="ls-licoes"></div>
+    </section>
+
+    <section class="view gutter" id="v-riffs" hidden>
+      <div>
+        <p class="eyebrow">Riffs de blues · 2ª posição</p>
+        <h2>Vocabulário de blues</h2>
+        <p class="intro">Licks para tocar sobre um blues no tom da 2ª posição (na gaita em C, o blues é em G). Do mais simples, sem bend, ao overblow.</p>
+      </div>
+      <div class="card" id="st-riffs"></div>
+      <div class="plist" id="ls-riffs"></div>
+    </section>
+
+    <section class="view gutter" id="v-jam" hidden>
+      <div>
+        <p class="eyebrow">Jam de blues · 2ª posição</p>
+        <h2 id="j-title">Blues em G com gaita em C</h2>
+        <p class="intro">Base de 12 compassos gerada pelo app (bateria, baixo e guitarra), no tom da 2ª posição da sua gaita e sincronizada com a tablatura. Escolha um chorus e toque junto.</p>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Forma do blues</h3><span class="badge" id="j-key"></span></div>
+        <div class="chart" id="j-chart"></div>
+        <div class="mix" role="group" aria-label="Mixagem">
+          <button type="button" class="chipb" id="j-back" aria-pressed="true">Base</button>
+          <button type="button" class="chipb" id="j-guide" aria-pressed="true">Gaita guia</button>
+          <button type="button" class="chipb" id="j-swing" aria-pressed="true">Shuffle (suingado)</button>
+        </div>
+        <p class="legend">Contagem de 4 tempos antes de começar. Desligue a “Gaita guia” para tocar você mesmo, seguindo o destaque na tablatura.</p>
+      </div>
+      <div class="card" id="st-jam"></div>
+      <div class="plist" id="ls-jam"></div>
+      <div class="card yt">
+        <div class="card-h"><h3>Bases do YouTube</h3><span class="badge" id="yt-key"></span></div>
+        <p class="desc">Bases gravadas por bandas, já no tom do blues da sua gaita. Elas não ficam sincronizadas com a tablatura: use os choruses daqui como vocabulário e improvise por cima.</p>
+        <a class="linkbtn" id="yt-search" href="https://www.youtube.com/" target="_blank" rel="noopener">Buscar no YouTube</a>
+        <div><p class="lbl">Seu vídeo favorito para este tom</p>
+          <div class="row"><input id="yt-url" type="url" inputmode="url" placeholder="Cole o link do vídeo" aria-label="Link do vídeo do YouTube"><button type="button" id="yt-save">Salvar</button></div></div>
+        <div id="yt-player"></div>
+      </div>
+    </section>
+
+    <section class="view gutter" id="v-musicas" hidden>
+      <div>
+        <p class="eyebrow">Músicas · 1ª posição</p>
+        <h2>Melodias para tocar</h2>
+        <p class="intro">Melodias de domínio público. A tablatura é gerada pelo app a partir das notas, escolhendo os furos mais próximos e sem bends.</p>
+      </div>
+      <div class="card" id="st-musicas"></div>
+      <div class="plist" id="ls-musicas"></div>
+    </section>
+
+    <section class="view gutter" id="v-sobre" hidden>
+      <div>
+        <p class="eyebrow">Sobre</p>
+        <h2>Gaita de Bolso</h2>
+        <p class="intro">Mapa de notas, lições, riffs e músicas para gaita diatônica de 10 furos.</p>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Versão</h3><span class="badge" id="ab-status">verificando…</span></div>
+        <dl class="facts">
+          <dt>Versão do app</dt><dd id="ab-ver"></dd>
+          <dt>Publicada em</dt><dd id="ab-date"></dd>
+          <dt>Guardada offline</dt><dd id="ab-cache">…</dd>
+          <dt>Modo</dt><dd id="ab-mode"></dd>
+        </dl>
+        <button type="button" class="action" id="ab-update">Procurar atualização</button>
+        <p class="legend" id="ab-msg">Se “Versão do app” e “Guardada offline” forem iguais, a última atualização chegou ao seu celular.</p>
+      </div>
+      <div><p class="lbl">Novidades</p><div class="plist" id="ab-log"></div></div>
+      <div><p class="lbl">Diagnóstico da tela</p><p class="legend" id="ab-screen"></p></div>
+    </section>
+  </main>
+
+  <div class="transport gutter" id="transport" hidden>
+    <button type="button" class="playbtn" id="play" aria-label="Tocar"><svg viewBox="0 0 24 24" id="playicon"><path d="M7 4.5v15l12-7.5z"/></svg></button>
+    <div class="bpm">
+      <output id="bpmv" for="bpm">80</output><span>bpm</span>
+      <input type="range" id="bpm" min="40" max="200" step="2" value="80" aria-label="Andamento em batidas por minuto">
+    </div>
+    <div class="toggles">
+      <button type="button" class="tgl" id="t-metro" aria-pressed="false" aria-label="Metrônomo" title="Metrônomo">
+        <svg viewBox="0 0 24 24"><path d="M9 3h6l4 18H5z"/><path d="M12 17 16.5 6"/><path d="M7.5 15h9"/></svg></button>
+      <button type="button" class="tgl" id="t-loop" aria-pressed="true" aria-label="Repetir" title="Repetir">
+        <svg viewBox="0 0 24 24"><path d="M17 2.5 20.5 6 17 9.5"/><path d="M3.5 11.5V10a4 4 0 0 1 4-4h13"/><path d="M7 21.5 3.5 18 7 14.5"/><path d="M20.5 12.5V14a4 4 0 0 1-4 4h-13"/></svg></button>
+    </div>
+  </div>
+
+  <nav class="nav gutter" aria-label="Seções">
+    <button type="button" data-view="gaita" aria-current="page">
+      <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M2 11.5h20M6 11.5v2M9.5 11.5v2M13 11.5v2M16.5 11.5v2"/></svg>Gaita</button>
+    <button type="button" data-view="licoes">
+      <svg viewBox="0 0 24 24"><path d="M4 19V6a2 2 0 0 1 2-2h12v13H6a2 2 0 0 0-2 2zm0 0a2 2 0 0 0 2 2h12"/><path d="M9 8h5M9 11h3"/></svg>Lições</button>
+    <button type="button" data-view="riffs">
+      <svg viewBox="0 0 24 24"><path d="M3 15c3 0 3-6 6-6s3 6 6 6 3-6 6-6"/><circle cx="9" cy="9" r="1.4" fill="currentColor"/><circle cx="21" cy="9" r="1.4" fill="currentColor"/></svg>Riffs</button>
+    <button type="button" data-view="jam">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v16M16 4v16M3 12h18"/><circle cx="12" cy="8" r="1.2" fill="currentColor"/></svg>Jam</button>
+    <button type="button" data-view="musicas">
+      <svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>Músicas</button>
+  </nav>
+</div>
+
+<script>
+(function(){
+'use strict';
+/* ---------- versão ---------- */
+var APP_VERSION='1.2.0';
+var APP_DATE='07/11/2026';
+var CHANGELOG=[
+  ['1.2.0','Jam: bases de blues do YouTube escolhidas para cada um dos 12 tons, tocando dentro do app.'],
+  ['1.1.0','Aba Jam: base de blues de 12 compassos gerada no tom da 2ª posição (bateria, baixo e guitarra), 8 choruses sincronizados do acompanhamento ao overblow, busca de bases no YouTube e vídeo favorito por tom.'],
+  ['1.0.0','Primeira versão: mapa da gaita em 12 tons, qual gaita usar em cada posição, 12 lições, 8 riffs de blues e 5 músicas com tablatura gerada.']
+];
+
+/* ---------- teoria da gaita (Richter) ----------
+   Gaita em C como referência; as outras são a mesma tablatura transposta.
+   Tons graves (G a B) ficam abaixo da C; Db a F# ficam acima, como nas gaitas comuns. */
+var BLOW=[60,64,67,72,76,79,84,88,91,96];
+var DRAW=[62,67,71,74,77,81,83,86,89,93];
+var KEYS=[['G',-5],['Ab',-4],['A',-3],['Bb',-2],['B',-1],['C',0],['Db',1],['D',2],['Eb',3],['E',4],['F',5],['F#',6]];
+var SHARP=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+var FLAT=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+var SHARP_KEYS={G:1,D:1,A:1,E:1,B:1,'F#':1};
+var OB_COMMON={1:1,4:1,5:1,6:1}, OD_COMMON={7:1,9:1,10:1};
+
+function hole(h){
+  var b=BLOW[h-1], d=DRAW[h-1];
+  return d>b ? {blow:b,draw:d,drawBends:d-b-1,blowBends:0,over:d+1,overKind:'ob',overCommon:!!OB_COMMON[h]}
+             : {blow:b,draw:d,drawBends:0,blowBends:b-d-1,over:b+1,overKind:'od',overCommon:!!OD_COMMON[h]};
+}
+function keyOffset(){return KEYS[S.key][1];}
+function noteName(midi,withOct){
+  var k=KEYS[S.key][0], names=SHARP_KEYS[k]?SHARP:FLAT, m=((midi%12)+12)%12;
+  return names[m]+(withOct?Math.floor(midi/12-1):'');
+}
+function pcName(pc){var k=KEYS[S.key][0]; return (SHARP_KEYS[k]?SHARP:FLAT)[((pc%12)+12)%12];}
+
+/* Tablatura: +4 sopro, -4 puxa, -3' bend (cada ' = meio tom), +6o overblow, -7o overdraw,
+   (-123) acorde, _ pausa, | barra; :2 = duração em tempos (padrão 1). */
+function parseTok(tok){
+  var dur=1, m=tok.match(/^(.*?):([\d.]+)$/); if(m){tok=m[1]; dur=+m[2];}
+  if(tok==='_') return {rest:true,dur:dur,label:'—'};
+  var c=tok.match(/^\(([+-])(\d+)\)$/);
+  if(c){
+    var hs=c[2].split('').map(Number), dir=c[1];
+    var midis=hs.map(function(h){if(h<1||h>9) throw new Error('acorde inválido '+tok); return dir==='+'?BLOW[h-1]:DRAW[h-1];});
+    return {dir:dir,holes:hs,chord:true,midis:midis,dur:dur,bends:0,over:false};
+  }
+  m=tok.match(/^([+-])(10|[1-9])('{0,3})(o?)$/);
+  if(!m) throw new Error('token inválido: '+tok);
+  var d=m[1], h=+m[2], bends=m[3].length, ov=m[4]==='o', H=hole(h), midi, from=null;
+  if(ov){
+    if((d==='+'&&H.overKind!=='ob')||(d==='-'&&H.overKind!=='od')) throw new Error('overblow/overdraw impossível: '+tok);
+    midi=H.over;
+  }else if(d==='+'){
+    if(bends>H.blowBends) throw new Error('bend de sopro impossível: '+tok);
+    midi=H.blow-bends; if(bends) from=H.blow;
+  }else{
+    if(bends>H.drawBends) throw new Error('bend de puxada impossível: '+tok);
+    midi=H.draw-bends; if(bends) from=H.draw;
+  }
+  return {dir:d,holes:[h],midis:[midi],from:from,dur:dur,bends:bends,over:ov};
+}
+function label(t){
+  if(t.rest) return '—';
+  var sign=t.dir==='-'?'-':(S.nota==='plus'?'+':'');
+  return sign+t.holes.join('')+"'".repeat(t.bends||0)+(t.over?'o':'');
+}
+function parseTab(str){
+  var out=[];
+  str.trim().split(/\s+/).forEach(function(tok){ if(tok==='|') out.push({bar:true}); else out.push(parseTok(tok)); });
+  return out;
+}
+
+/* Gera tablatura a partir de notas (referência: gaita em C), menor movimento entre furos.
+   level 0 = sem bends. Programação dinâmica sobre as opções de cada nota. */
+function noteToMidi(n){
+  var m=n.match(/^([A-G])([#b]?)(\d)$/); if(!m) throw new Error('nota inválida '+n);
+  var pc={C:0,D:2,E:4,F:5,G:7,A:9,B:11}[m[1]]+(m[2]==='#'?1:m[2]==='b'?-1:0);
+  return (+m[3]+1)*12+pc;
+}
+function optionsFor(midi,level){
+  var o=[];
+  for(var h=1;h<=10;h++){
+    var H=hole(h);
+    if(H.blow===midi) o.push({tok:'+'+h,h:h,cost:0});
+    if(H.draw===midi) o.push({tok:'-'+h,h:h,cost:0});
+    if(level>=1){
+      for(var b=1;b<=H.drawBends;b++) if(H.draw-b===midi) o.push({tok:'-'+h+"'".repeat(b),h:h,cost:3+b});
+      for(b=1;b<=H.blowBends;b++) if(H.blow-b===midi) o.push({tok:'+'+h+"'".repeat(b),h:h,cost:3+b});
+    }
+  }
+  return o;
+}
+function tabFromNotes(str,level){
+  var items=str.trim().split(/\s+/), seq=[];
+  items.forEach(function(it){
+    if(it==='|'){seq.push({bar:true});return;}
+    var m=it.match(/^(.*?)(?::([\d.]+))?$/), dur=m[2]?+m[2]:1;
+    if(m[1]==='_'){seq.push({rest:true,dur:dur});return;}
+    var midi=noteToMidi(m[1]), opts=optionsFor(midi,level||0);
+    if(!opts.length) opts=optionsFor(midi,1);
+    if(!opts.length) throw new Error('nota fora da gaita: '+m[1]);
+    seq.push({opts:opts,dur:dur});
+  });
+  var notes=seq.filter(function(x){return x.opts;}), prev=null;
+  notes.forEach(function(n){
+    n.best=n.opts.map(function(o){
+      if(!prev) return {c:o.cost,back:null};
+      var best=1e9, bk=null;
+      prev.opts.forEach(function(p,i){var c=prev.best[i].c+Math.abs(o.h-p.h)+o.cost; if(c<best){best=c;bk=i;}});
+      return {c:best,back:bk};
+    });
+    prev=n;
+  });
+  if(notes.length){
+    var last=notes[notes.length-1], bi=0;
+    last.best.forEach(function(b,i){if(b.c<last.best[bi].c) bi=i;});
+    for(var k=notes.length-1;k>=0;k--){ notes[k].choice=notes[k].opts[bi]; bi=notes[k].best[bi].back; }
+  }
+  return seq.map(function(x){
+    if(x.bar) return '|';
+    if(x.rest) return '_'+(x.dur!==1?':'+x.dur:'');
+    return x.choice.tok+(x.dur!==1?':'+x.dur:'');
+  }).join(' ');
+}
+
+/* ---------- conteúdo ---------- */
+var LEVELS={1:'Iniciante',2:'Básico',3:'Intermediário',4:'Avançado'};
+var LESSONS=[
+  {id:'single', level:1, pos:1, bpm:60, title:'Uma nota só: furo 4',
+   goal:'Tirar uma nota limpa, sem vazar para os furos vizinhos.',
+   tip:'Faça um biquinho como quem vai assobiar e encoste os lábios relaxados na gaita. Sopre e puxe com o ar vindo da barriga, sem força.',
+   tab:'+4:2 -4:2 | +4:2 -4:2 | +4 -4 +4 -4 | +4:4'},
+  {id:'scale', level:1, pos:1, bpm:66, title:'Escala maior (furos 4 a 7)',
+   goal:'Tocar a escala do tom da gaita subindo e descendo.',
+   tip:'Repare na virada do furo 7: ali a puxada (-7) vem antes do sopro (+7). É o único ponto da escala em que a ordem inverte.',
+   tab:'+4 -4 +5 -5 | +6 -6 -7 +7:2 | +7 -7 -6 +6 | -5 +5 -4 +4:2'},
+  {id:'chords', level:1, pos:1, bpm:70, title:'Acordes de sopro e puxada',
+   goal:'Soar três furos juntos, de forma limpa.',
+   tip:'Abra mais a boca, cobrindo 3 furos. O acorde de sopro (1-2-3) é o do tom da gaita; o de puxada (1-2-3) é o da 2ª posição, a base do blues.',
+   tab:'(+123):2 (-123):2 | (+456):2 (-456):2 | (+123):2 (-123):2 | (+123):4'},
+  {id:'train', level:1, pos:2, bpm:96, title:'Ritmo de trem',
+   goal:'Manter um pulso constante alternando puxa e sopro em acordes.',
+   tip:'Pense “tchu-ca, tchu-ca”: duas puxadas curtas, duas sopradas curtas. Comece devagar e acelere como um trem saindo da estação.',
+   tab:'(-12):0.5 (-12):0.5 (+12):0.5 (+12):0.5 (-12):0.5 (-12):0.5 (+12):0.5 (+12):0.5 | (-12):0.5 (-12):0.5 (+12):0.5 (+12):0.5 (-123):2'},
+  {id:'bend4', level:2, pos:2, bpm:60, title:'Primeiro bend: -4\'',
+   goal:'Abaixar meio tom a puxada do furo 4.',
+   tip:'Puxe o -4 e, sem mudar a gaita de lugar, diga um “i-u” bem devagar, levando a língua para trás e para baixo. A nota cai. Volte para o “i” e ela sobe.',
+   tab:'-4:2 -4\':2 | -4:2 -4\':2 | -4 -4\' -4 _ | -4:4'},
+  {id:'bend16', level:2, pos:2, bpm:60, title:'Bends nos furos 1 e 6',
+   goal:'Repetir o meio tom em outro registro.',
+   tip:'No furo 1 o bend pede um “u” mais fundo; no 6, mais curto e mais na frente da boca. Escute: a nota tem que cair e voltar sem parar o som.',
+   tab:'-1:2 -1\':2 | -1:4 | -6:2 -6\':2 | -6:4'},
+  {id:'bend2', level:3, pos:2, bpm:56, title:'Bends do furo 2 (até 1 tom)',
+   goal:'Controlar dois degraus de bend no mesmo furo.',
+   tip:'O -2\'\' é a nota mais difícil de afinar no começo. Use a tela Gaita para ouvir a nota-alvo antes de tentar.',
+   tab:'-2:2 -2\':2 | -2\'\':2 -2\':2 | -2:4'},
+  {id:'bend3', level:3, pos:2, bpm:56, title:'Bends do furo 3 (até 1 tom e meio)',
+   goal:'Chegar aos três degraus do furo 3, a região mais expressiva do blues.',
+   tip:'Cada degrau é um pouco mais de “u” e de garganta aberta. O -3\' é a blue note mais usada na 2ª posição.',
+   tab:'-3 -3\' -3\'\' -3\'\'\' | -3\'\' -3\' -3:2'},
+  {id:'blues', level:3, pos:2, bpm:72, title:'Escala blues na 2ª posição',
+   goal:'Tocar a escala blues completa do tom da 2ª posição.',
+   tip:'Escala da tônica da 2ª posição (na gaita em C, Sol): os bends -3\' e -4\' são as blue notes. Toque devagar até cada bend chegar na altura certa.',
+   tab:'-2 -3\' +4 -4\' | -4 -5 +6:2 | +6 -5 -4 -4\' | +4 -3\' -2:2'},
+  {id:'blowbend', level:4, pos:2, bpm:60, title:'Bends de sopro (8, 9 e 10)',
+   goal:'Fazer bend soprando, no registro agudo.',
+   tip:'O movimento é o mesmo, mas soprando e com muito menos esforço. No furo 10 dá para descer até 1 tom.',
+   tab:'+8:2 +8\':2 | +9:2 +9\':2 | +10:2 +10\':2 | +10\'\':2 +10:2'},
+  {id:'overblow', level:4, pos:2, bpm:52, title:'Overblow no furo 6',
+   goal:'Tirar a nota que falta entre o -6 e o +7.',
+   tip:'Comece com o bend de sopro do 6 quase acontecendo e aumente a pressão com a garganta fechada. O som “salta” para uma nota acima da puxada. Gaitas bem reguladas ajudam muito.',
+   tab:'-6:2 +6o:2 | +6:2 +6o:2 | -6 +6o -6 +6 | +6:4'},
+  {id:'twelve', level:2, pos:2, bpm:84, title:'Blues de 12 compassos (base)',
+   goal:'Acompanhar a forma do blues com acordes.',
+   tip:'I = acorde de puxada (-123), IV = acorde de sopro (+123), V = puxada nos furos 4-5-6. Conte os compassos: 4 de I, 2 de IV, 2 de I, V, IV, I, V.',
+   tab:'(-123) (-123) (-123) (-123) | (-123) (-123) (-123) (-123) | (-123) (-123) (-123) (-123) | (-123) (-123) (-123) (-123) | (+123) (+123) (+123) (+123) | (+123) (+123) (+123) (+123) | (-123) (-123) (-123) (-123) | (-123) (-123) (-123) (-123) | (-456) (-456) (-456) (-456) | (+123) (+123) (+123) (+123) | (-123) (-123) (-123) (-123) | (-456) (-456) (-456) (-456)'}
+];
+LESSONS.sort(function(a,b){return a.level-b.level;});
+var RIFFS=[
+  {id:'call', level:1, bpm:84, title:'Chamada e resposta', tab:'-2 -3 -4 -4:2 | -4 -3 -2:2 _:2', d:'Sobe e desce pelo acorde da tônica. Sem bend: só puxadas.'},
+  {id:'blue3', level:2, bpm:80, title:'Blue note do 3', tab:'-2 -3\' -2:2 | +4 -3\' -2:2', d:'O meio tom abaixo no furo 3 dá o “choro” do blues. Ataque o -3\' já abaixado.'},
+  {id:'up4', level:2, bpm:76, title:'Subida pelo -4\'', tab:'-2 -3\' +4 -4\' | -4:2 _ | -4 -4\' +4 -3\' | -2:2', d:'A escala blues subindo e voltando, com as duas blue notes.'},
+  {id:'high', level:2, bpm:84, title:'Descida do furo 6', tab:'+6 -5 -4 -4\' | +4 -3\' -2:2', d:'Começa na tônica aguda e desce até a grave. Ótimo para fechar uma frase.'},
+  {id:'whole', level:3, bpm:72, title:'Bend de um tom inteiro', tab:'-3\'\' -2 -3\'\' -3 | -2:2 _:2', d:'O -3\'\' tem que chegar exatamente no tom: confira na tela Gaita antes.'},
+  {id:'turn', level:3, bpm:84, title:'Turnaround', tab:'+6 -6 +6 -5 | -4 -4\' +4 -3\' | -2 (-123) (-456):2', d:'Fim de volta do blues: desce até a tônica e termina no acorde do V, preparando a próxima volta.'},
+  {id:'shuffle', level:3, bpm:100, title:'Trem com melodia', tab:'(-12):0.5 (-12):0.5 -3\':0.5 -2:0.5 (-12):0.5 (-12):0.5 +4:0.5 -3\':0.5 | (-12):0.5 (-12):0.5 -3\':0.5 -2:0.5 (-123):2', d:'Mistura o ritmo de trem com notas soltas. Mantenha o pulso o tempo todo.'},
+  {id:'ob', level:4, bpm:66, title:'Subida até o overblow', tab:'-4 -5 +6 +6o | -6 +6 -5 -4:2', d:'A escala blues no registro médio usando o overblow do 6 como blue note. Para quem já domina os bends.'}
+];
+var SONGS=[
+  {id:'mary', level:1, bpm:96, meter:'4/4', title:'Mary Had a Little Lamb', origin:'Tradicional (séc. XIX)',
+   notes:'E5 D5 C5 D5 | E5 E5 E5:2 | D5 D5 D5:2 | E5 G5 G5:2 | E5 D5 C5 D5 | E5 E5 E5 E5 | D5 D5 E5 D5 | C5:4'},
+  {id:'ode', level:1, bpm:100, meter:'4/4', title:'Hino à Alegria', origin:'Beethoven, 9ª Sinfonia (1824)',
+   notes:'E5 E5 F5 G5 | G5 F5 E5 D5 | C5 C5 D5 E5 | E5:1.5 D5:0.5 D5:2 | E5 E5 F5 G5 | G5 F5 E5 D5 | C5 C5 D5 E5 | D5:1.5 C5:0.5 C5:2'},
+  {id:'saints', level:2, bpm:108, meter:'4/4', title:'When the Saints Go Marching In', origin:'Tradicional (spiritual)',
+   notes:'C5 E5 F5 | G5:4 _ | C5 E5 F5 | G5:4 _ | C5 E5 F5 G5:2 E5:2 C5:2 E5:2 D5:4 _ | E5 E5 D5 C5:3 C5 E5:2 G5:2 G5 F5:3 _ | E5 F5 G5:2 E5:2 C5:2 D5:2 C5:4'},
+  {id:'susanna', level:2, bpm:110, meter:'2/4', title:'Oh! Susanna', origin:'Stephen Foster (1848)',
+   notes:'C5 D5 | E5 G5 G5:1.5 A5:0.5 | G5 E5 C5:1.5 D5:0.5 | E5 E5 D5 C5 | D5:3 C5 D5 | E5 G5 G5:1.5 A5:0.5 | G5 E5 C5:1.5 D5:0.5 | E5 E5 D5 D5 | C5:4'},
+  {id:'grace', level:2, bpm:84, meter:'3/4', title:'Amazing Grace', origin:'Tradicional (hino, 1779)',
+   notes:'G5 | C6:2 E6:0.5 C6:0.5 | E6:2 D6 | C6:2 A5 | G5:2 G5 | C6:2 E6:0.5 C6:0.5 | E6:2 D6 | G6:3 | G6:2 E6 | G6:2 E6:0.5 C6:0.5 | G5:2 A5 | C6:2 A5 | G5:2 G5 | C6:2 E6:0.5 C6:0.5 | E6:2 D6 | C6:3'}
+];
+SONGS.forEach(function(s){ s.tab=tabFromNotes(s.notes,0); });
+
+/* Choruses de 12 compassos para a 2ª posição: I I I I | IV IV I I | V IV I V.
+   Cada compasso soma 4 tempos; "%" repete o compasso anterior. Referência: gaita em C (blues em G). */
+var FORM=['I','I','I','I','IV','IV','I','I','V','IV','I','V'];
+var CHORUSES=[
+  {id:'chop', level:1, bpm:84, title:'Acompanhamento: chop no 2 e no 4',
+   d:'Acordes curtos nos tempos 2 e 4, como a caixa da bateria. I = puxada 1-2-3, IV = sopro 1-2-3, V = puxada 4-5-6.',
+   bars:['_ (-123) _ (-123)','%','%','%','_ (+123) _ (+123)','%','_ (-123) _ (-123)','%','_ (-456) _ (-456)','_ (+123) _ (+123)','_ (-123) _ (-123)','_ (-456) _ (-456)']},
+  {id:'train', level:1, bpm:88, title:'Acompanhamento: trem',
+   d:'O ritmo de trem acompanhando a forma inteira: puxa-puxa-sopra-sopra no I, o contrário no IV, puxadas no V.',
+   bars:['(-123):0.5 (-123):0.5 (+123):0.5 (+123):0.5 (-123):0.5 (-123):0.5 (+123):0.5 (+123):0.5','%','%','%',
+         '(+123):0.5 (+123):0.5 (-123):0.5 (-123):0.5 (+123):0.5 (+123):0.5 (-123):0.5 (-123):0.5','%',
+         '(-123):0.5 (-123):0.5 (+123):0.5 (+123):0.5 (-123):0.5 (-123):0.5 (+123):0.5 (+123):0.5','%',
+         '(-456):0.5 (-456):0.5 (-456):0.5 (-456):0.5 (-456):0.5 (-456):0.5 (-456):0.5 (-456):0.5',
+         '(+123):0.5 (+123):0.5 (-123):0.5 (-123):0.5 (+123):0.5 (+123):0.5 (-123):0.5 (-123):0.5',
+         '(-123):0.5 (-123):0.5 (+123):0.5 (+123):0.5 (-123):0.5 (-123):0.5 (+123):0.5 (+123):0.5',
+         '(-456):1 (-456):1 (-456):2']},
+  {id:'nobend', level:1, bpm:84, title:'Frases sem bend',
+   d:'Uma frase por acorde, só com notas naturais: as notas do acorde de cada compasso.',
+   bars:['-2 -3 -4:2','-4 -3 -2:2','-2 -3 -4 -5','+6:2 -5 -4','+4:2 +5 +4','+6 +5 +4:2','-4 -3 -2:2','(-123):2 _:2','-4:2 -6:2','+4 +5 +6:2','-4 -3 -2:2','-4:2 _:2']},
+  {id:'blue', level:2, bpm:80, title:'Blue notes: -3\' e -4\'',
+   d:'As duas blue notes da 2ª posição colocadas nos acordes certos. Repare no -3\' indo para o -3 natural no compasso 7.',
+   bars:['-2 -3\' -2:2','+4 -3\' -2:2','-2 -3\' +4 -4\'','-4:2 _:2','+4:2 -3\' +4','+5 +4 -3\':2','-3\' -3 -2:2','_:2 -2 -3\'','-4:2 +4 -4','+4:2 -3\':2','-2 -3\' +4 -4\'','-4:3 _']},
+  {id:'shuffle', level:3, bpm:92, title:'Shuffle com turnaround',
+   d:'Frases em colcheias que caem no suingado da base, fechando com o turnaround clássico nos dois últimos compassos.',
+   bars:['-2:0.5 -3\':0.5 -3:0.5 -2:0.5 -4:2','-4:0.5 -4\':0.5 +4:0.5 -3\':0.5 -2:2','%','-2:0.5 -3\':0.5 -4:0.5 -5:0.5 +6:2',
+         '+4:0.5 +5:0.5 +6 +5:0.5 +4:0.5 -3\'','+4:2 _:2','-2:0.5 -3\':0.5 -3:0.5 -2:0.5 -4:2','-4:0.5 -4\':0.5 +4:0.5 -3\':0.5 -2:2',
+         '-6 -5 -4:2','+6 +5 +4:2','+6:0.5 -6:0.5 +6:0.5 -5:0.5 -4:0.5 -4\':0.5 +4:0.5 -3\':0.5','-2 (-456):3']},
+  {id:'whole', level:3, bpm:76, title:'Bends de tom inteiro e notas longas',
+   d:'Blues lento e cantado: o -3\'\' e o -2\'\' precisam chegar exatamente na nota. Confira as notas-alvo na tela Gaita.',
+   bars:['-3\'\':2 -2:2','-3\'\' -3\' -2:2','-2\'\':2 -2:2','-1 -2 -2\'\' -2','+4:2 -3\':2','-3\'\' +4 -3\':2','-3\' -3 -2:2','-2:4','-3\'\':2 +4:2','-3\':2 +4:2','-3\'\' -3\' -3 -2','-1:2 _:2']},
+  {id:'high', level:4, bpm:84, title:'Registro agudo com bends de sopro',
+   d:'O mesmo blues uma oitava acima, nos furos 6 a 10, com os bends de sopro do 8, do 9 e do 10.',
+   bars:['+9:2 -9 +9','-8 -9 +9:2','+9 +9\' -8:2','+7 -8 +9:2','+10:2 +10\'\':2','+10 +9 +8:2','+9 -9 -8:2','+7 -7 +6:2','-8:2 -10:2','+8 +8\' +7:2','+9 -9 -8 +7','-8:3 _']},
+  {id:'ob', level:4, bpm:80, title:'Chorus com overblows',
+   d:'Usa os overblows do 6 (Bb), do 5 (F#) e do 4 (Eb) para tocar notas que a gaita não dá de forma natural.',
+   bars:['-4 -5 +6 +6o','-6:2 +6:2','+6o +6 -5 -4','-4:4','+6o:2 -6 +6','-5 +4o -4:2','-4 -5 +6 +6o','+7:2 +6:2','-6:2 +5o:2','+6o:2 +6:2','-5 -4 -4\' +4','-4:2 (-456):2']}
+];
+function chorusBars(c){
+  var out=[], prev=null;
+  c.bars.forEach(function(b){ var bb=b.trim()==='%'?prev:b; out.push(bb); prev=bb; });
+  return out.map(function(b){ return parseTab(b); });
+}
+
+/* ---------- estado ---------- */
+var S={view:'gaita',key:5,nota:'plus',songKey:7,bpm:80,metro:false,loop:true,sel:{licoes:'single',riffs:'call',musicas:'mary',jam:'chop'},jBack:true,jGuide:true,swing:true,yt:{},ytSel:{}};
+try{var saved=JSON.parse(localStorage.getItem('gaita-de-bolso')||'null'); if(saved){for(var k in saved) if(k in S) S[k]=saved[k];}}catch(e){}
+S.sel=Object.assign({licoes:'single',riffs:'call',musicas:'mary',jam:'chop'},S.sel||{}); if(!S.yt||typeof S.yt!=='object') S.yt={};
+if(!(S.key>=0&&S.key<KEYS.length)) S.key=5;
+function save(){try{localStorage.setItem('gaita-de-bolso',JSON.stringify(S));}catch(e){}}
+
+/* ---------- áudio: palheta sintetizada ---------- */
+var AC=null, OUT=null;
+function ac(){
+  if(!AC){
+    var C=window.AudioContext||window.webkitAudioContext; AC=new C();
+    OUT=AC.createGain(); OUT.gain.value=.5;
+    var comp=AC.createDynamicsCompressor(); OUT.connect(comp); comp.connect(AC.destination);
+  }
+  if(AC.state==='suspended') AC.resume();
+  return AC;
+}
+function mtof(m){return 440*Math.pow(2,(m-69)/12);}
+function reed(midi,t,dur,gain,fromMidi){
+  var c=AC, f=mtof(midi), g=c.createGain(), lp=c.createBiquadFilter(), m2=c.createGain();
+  var o1=c.createOscillator(), o2=c.createOscillator(), lfo=c.createOscillator(), lg=c.createGain();
+  o1.type='sawtooth'; o2.type='square'; m2.gain.value=.3;
+  lp.type='lowpass'; lp.frequency.value=Math.min(6000,f*6); lp.Q.value=1.4;
+  lfo.frequency.value=5.4; lg.gain.value=f*.0025; lfo.connect(lg); lg.connect(o1.frequency); lg.connect(o2.frequency);
+  [o1,o2].forEach(function(o){
+    if(fromMidi!=null){ o.frequency.setValueAtTime(mtof(fromMidi),t); o.frequency.linearRampToValueAtTime(f,t+Math.min(.16,dur*.4)); }
+    else o.frequency.setValueAtTime(f,t);
+  });
+  o2.detune.value=5;
+  var end=t+Math.max(.08,dur*.92);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(gain,t+.035); g.gain.setValueAtTime(gain*.85,end-.03);
+  g.gain.linearRampToValueAtTime(0,end+.05);
+  o1.connect(lp); o2.connect(m2); m2.connect(lp); lp.connect(g); g.connect(OUT);
+  [o1,o2,lfo].forEach(function(o){o.start(t); o.stop(end+.08);});
+}
+function click(t,acc){
+  var o=AC.createOscillator(), g=AC.createGain();
+  o.frequency.value=acc?1760:1180; g.gain.setValueAtTime(acc?.3:.18,t); g.gain.exponentialRampToValueAtTime(.0001,t+.04);
+  o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+.05);
+}
+function playTok(t,time,dur){
+  if(t.rest) return;
+  var off=keyOffset(), n=t.midis.length, gain=n>1?.11:.2;
+  t.midis.forEach(function(m){ reed(m+off,time,dur,gain,t.from!=null?t.from+off:null); });
+}
+
+/* ---------- player ---------- */
+var P={on:false,seq:null,i:0,next:0,beat:0,q:[],timer:0,raf:0,cur:-1,end:0,lock:null,cells:null};
+var current={};
+function play(seq,cells){
+  stop(); var c=ac();
+  P.seq=seq; P.cells=cells; P.i=0; P.q=[]; P.cur=-1; P.end=0; P.beat=0; P.next=c.currentTime+.12; P.on=true;
+  P.timer=setInterval(tick,25); tick(); P.raf=requestAnimationFrame(draw); setIcon();
+  try{ if(navigator.wakeLock) navigator.wakeLock.request('screen').then(function(l){P.lock=l;}).catch(function(){}); }catch(e){}
+}
+function tick(){
+  if(!P.on||P.end) return;
+  while(P.next<AC.currentTime+.15){
+    var t=P.seq[P.i], spb=60/S.bpm, dur=t.dur*spb;
+    if(S.metro){ for(var b=Math.ceil(P.beat-1e-6);b<P.beat+t.dur-1e-6;b++) click(P.next+(b-P.beat)*spb, b%(P.meter||4)===0); }
+    playTok(t,P.next,dur);
+    P.q.push({t:P.next,i:P.i}); P.next+=dur; P.beat+=t.dur; P.i++;
+    if(P.i>=P.seq.length){ if(S.loop){P.i=0; P.beat=0;} else {P.end=P.next; break;} }
+  }
+}
+function mark(i,on){ if(i>=0&&P.cells&&P.cells[i]) P.cells[i].classList.toggle('on',on); }
+function draw(){
+  if(!P.on) return;
+  var t=AC.currentTime, cur=P.cur;
+  while(P.q.length&&P.q[0].t<=t) cur=P.q.shift().i;
+  if(cur!==P.cur){mark(P.cur,false); mark(cur,true); P.cur=cur;}
+  if(P.end&&t>=P.end+.05){stop();return;}
+  P.raf=requestAnimationFrame(draw);
+}
+function stop(){
+  if(typeof jamStop==='function'&&J&&J.on) jamStop();
+  if(P.timer) clearInterval(P.timer); if(P.raf) cancelAnimationFrame(P.raf);
+  mark(P.cur,false); P.cur=-1; P.on=false; P.timer=0;
+  if(P.lock){try{P.lock.release();}catch(e){} P.lock=null;}
+  setIcon();
+}
+function setIcon(){
+  var b=document.getElementById('play'), i=document.getElementById('playicon');
+  var on=P.on||(typeof J!=='undefined'&&J.on);
+  i.innerHTML=on?'<rect x="6" y="5" width="4.2" height="14" rx="1"/><rect x="13.8" y="5" width="4.2" height="14" rx="1"/>':'<path d="M7 4.5v15l12-7.5z"/>';
+  b.setAttribute('aria-label',on?'Parar':'Tocar');
+}
+
+/* ---------- desenho ---------- */
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function renderTabEl(toks,compact){
+  var wrap=document.createElement('div'); wrap.className='tab';
+  var cells=[], seq=[], off=keyOffset();
+  toks.forEach(function(t){
+    if(t.bar){ var b=document.createElement('span'); b.className='bar'; b.setAttribute('aria-hidden','true'); wrap.appendChild(b); return; }
+    var el=document.createElement('div');
+    var cls='nt '+(t.rest?'rest':(t.bends||t.over)?'bent':t.dir==='+'?'blow':'draw')+(t.chord?' chord':'');
+    el.className=cls;
+    var nn=t.rest?'pausa':t.midis.map(function(m){return noteName(m+off);}).join(' ');
+    var beats=Math.max(1,Math.round(t.dur*2)/2), dots='';
+    for(var i=0;i<Math.min(8,Math.round(t.dur*2));i++) dots+='<i></i>';
+    el.innerHTML='<span class="tk">'+esc(label(t))+'</span><span class="nn">'+esc(nn)+'</span><span class="du" aria-hidden="true">'+dots+'</span>';
+    el.style.minWidth=compact?(2.05+Math.max(0,t.dur-1)*.5)+'rem':(2.5+Math.max(0,t.dur-1)*.9)+'rem';
+    el.setAttribute('aria-label',label(t)+' '+nn+' '+t.dur+' tempo'+(t.dur===1?'':'s'));
+    wrap.appendChild(el); cells.push(el); seq.push(t);
+  });
+  return {el:wrap,cells:cells,seq:seq};
+}
+var LEGEND='<p class="legend"><b>+4</b> sopro · <b>-4</b> puxa · <b>\'</b> bend de meio tom · <b>o</b> overblow/overdraw · <b>(-123)</b> acorde · <b>—</b> pausa. Os pontinhos mostram a duração (2 pontos = 1 tempo).</p>';
+
+/* ---------- tela: gaita ---------- */
+function renderHarp(){
+  var k=KEYS[S.key][0], off=keyOffset();
+  document.getElementById('g-title').textContent='Gaita diatônica em '+k;
+  var rows=[
+    {lb:'Over',f:function(h,H){return (H.overKind==='od'&&H.overCommon)?{m:H.over,tok:'-'+h+'o',cls:'ob',from:null}:null;}},
+    {lb:'Bend ″',f:function(h,H){return H.blowBends>=2?{m:H.blow-2,tok:'+'+h+"''",cls:'bend',from:H.blow}:null;}},
+    {lb:'Bend ′',f:function(h,H){return H.blowBends>=1?{m:H.blow-1,tok:'+'+h+"'",cls:'bend',from:H.blow}:null;}},
+    {lb:'Sopro',f:function(h,H){return {m:H.blow,tok:'+'+h,cls:'blow',from:null};}},
+    {lb:'',hole:true},
+    {lb:'Puxa',f:function(h,H){return {m:H.draw,tok:'-'+h,cls:'draw',from:null};}},
+    {lb:'Bend ′',f:function(h,H){return H.drawBends>=1?{m:H.draw-1,tok:'-'+h+"'",cls:'bend',from:H.draw}:null;}},
+    {lb:'Bend ″',f:function(h,H){return H.drawBends>=2?{m:H.draw-2,tok:'-'+h+"''",cls:'bend',from:H.draw}:null;}},
+    {lb:'Bend ‴',f:function(h,H){return H.drawBends>=3?{m:H.draw-3,tok:'-'+h+"'''",cls:'bend',from:H.draw}:null;}},
+    {lb:'Over',f:function(h,H){return (H.overKind==='ob'&&H.overCommon)?{m:H.over,tok:'+'+h+'o',cls:'ob',from:null}:null;}}
+  ];
+  var html='';
+  rows.forEach(function(r){
+    html+='<div class="rl">'+esc(r.lb)+'</div>';
+    for(var h=1;h<=10;h++){
+      if(r.hole){html+='<div class="hole"><span>'+h+'</span></div>'; continue;}
+      var c=r.f(h,hole(h));
+      if(!c){html+='<div class="gap"></div>'; continue;}
+      var t=parseTok(c.tok);
+      html+='<button type="button" class="hc '+c.cls+'" data-tok="'+esc(c.tok)+'" aria-label="'+esc(label(t))+', '+noteName(c.m+off)+'">'+noteName(c.m+off)+'<small>'+esc(label(t))+'</small></button>';
+    }
+  });
+  var g=document.getElementById('harp'); g.innerHTML=html;
+  g.querySelectorAll('.hc').forEach(function(b){b.addEventListener('click',function(){
+    var t=parseTok(b.dataset.tok); ac(); playTok(t,AC.currentTime+.02,.9);
+    g.querySelectorAll('.hc.on').forEach(function(x){x.classList.remove('on');}); b.classList.add('on');
+  });});
+  var kpc=(off%12+12)%12;
+  document.getElementById('positions').innerHTML=
+    '<div class="pos"><span>1ª posição</span><b>'+pcName(kpc)+'</b><span>maior · folk, melodias</span></div>'
+   +'<div class="pos"><span>2ª posição</span><b>'+pcName(kpc+7)+'</b><span>blues, rock, country</span></div>'
+   +'<div class="pos"><span>3ª posição</span><b>'+pcName(kpc+2)+'m</b><span>menor (dórico), blues menor</span></div>';
+  document.querySelectorAll('#o-nota button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===S.nota));});
+  renderWhich();
+}
+function harpFor(pc){ for(var i=0;i<KEYS.length;i++) if(((KEYS[i][1]%12)+12)%12===((pc%12)+12)%12) return KEYS[i][0]; return '?'; }
+function renderWhich(){
+  var pc=S.songKey, names=FLAT, sk=document.getElementById('songkey');
+  if(!sk.options.length){ sk.innerHTML=FLAT.map(function(n,i){return '<option value="'+i+'">'+(i===1?'C# / Db':i===6?'F# / Gb':n)+'</option>';}).join(''); }
+  sk.value=String(pc);
+  document.getElementById('which').innerHTML=
+    '<p>Melodia em tom maior, <b>1ª posição</b>: gaita em <b>'+harpFor(pc)+'</b></p>'
+   +'<p>Blues, rock, country, <b>2ª posição</b>: gaita em <b>'+harpFor(pc+5)+'</b></p>'
+   +'<p>Música em <b>'+names[pc]+'m</b>, <b>3ª posição</b>: gaita em <b>'+harpFor(pc-2)+'</b></p>';
+}
+
+/* ---------- telas de exercícios ---------- */
+var VIEWS={
+  licoes:{items:LESSONS, kind:'lição'},
+  riffs:{items:RIFFS, kind:'riff'},
+  musicas:{items:SONGS, kind:'música'}
+};
+function setBpm(v){S.bpm=v; var b=document.getElementById('bpm'); b.value=v; document.getElementById('bpmv').textContent=v; save();}
+function keyText(pos){
+  var off=keyOffset(), k=KEYS[S.key][0], pc=(off%12+12)%12;
+  if(pos===2) return 'Na gaita em '+k+', soa em '+pcName(pc+7)+' (2ª posição).';
+  return 'Na gaita em '+k+', soa em '+pcName(pc)+' (1ª posição).';
+}
+function renderList(name){
+  var V=VIEWS[name], sel=S.sel[name], it=V.items.filter(function(x){return x.id===sel;})[0]||V.items[0];
+  var st=document.getElementById('st-'+name), ls=document.getElementById('ls-'+name);
+  var toks=parseTab(it.tab), pos=name==='musicas'?1:(it.pos||2);
+  var h='<div class="card-h"><h3>'+esc(it.title)+'</h3><span class="badge">Nível '+it.level+' · '+LEVELS[it.level]+'</span></div>';
+  if(it.origin) h+='<p class="legend">'+esc(it.origin)+' · compasso '+esc(it.meter)+' · domínio público</p>';
+  if(it.goal) h+='<p class="desc"><b>Objetivo:</b> '+esc(it.goal)+'</p>';
+  if(it.d) h+='<p class="desc">'+esc(it.d)+'</p>';
+  h+='<p class="legend">'+keyText(pos)+' Andamento sugerido: '+it.bpm+' bpm.</p>';
+  st.innerHTML=h;
+  var tab=renderTabEl(toks); st.appendChild(tab.el);
+  if(it.tip) st.insertAdjacentHTML('beforeend','<p class="tip">'+esc(it.tip)+'</p>');
+  st.insertAdjacentHTML('beforeend',LEGEND);
+  current={seq:tab.seq,cells:tab.cells,meter:it.meter?+it.meter.split('/')[0]:4};
+  var lv=0, html='';
+  V.items.forEach(function(x){
+    if(x.level!==lv){lv=x.level; html+='<p class="lvl">Nível '+lv+' · '+LEVELS[lv]+'</p>';}
+    var preview=parseTab(x.tab).filter(function(t){return !t.bar;}).slice(0,8).map(label).join(' ');
+    html+='<button type="button" class="pitem" data-id="'+x.id+'" aria-pressed="'+(x.id===it.id)+'"><span class="pn">'+esc(x.title)+'</span><span class="pf">'+esc(preview)+'</span>'
+      +'<span class="badge pk">'+x.bpm+' bpm</span></button>';
+  });
+  ls.innerHTML=html;
+  ls.querySelectorAll('.pitem').forEach(function(b){b.addEventListener('click',function(){
+    var was=P.on, n=V.items.filter(function(x){return x.id===b.dataset.id;})[0];
+    S.sel[name]=n.id; setBpm(n.bpm); save(); renderList(name);
+    if(was) startCurrent();
+    document.getElementById('main').scrollTo({top:0,behavior:'smooth'});
+  });});
+}
+function startCurrent(){ P.meter=current.meter||4; play(current.seq,current.cells); }
+
+/* ---------- sobre ---------- */
+function abMsg(t){document.getElementById('ab-msg').textContent=t;}
+function abCache(){
+  var el=document.getElementById('ab-cache'), st=document.getElementById('ab-status');
+  function set(v){ el.textContent=v||'—'; var same=v===APP_VERSION;
+    st.textContent=v?(same?'atualizado':'atualização pendente'):'sem modo offline'; st.classList.toggle('ok-badge',!!same); }
+  try{
+    if(!window.caches){set('');return;}
+    caches.keys().then(function(k){
+      var v=k.map(function(x){var m=x.match(/-(\d+\.\d+\.\d+)$/); return m?m[1]:null;}).filter(Boolean);
+      set(v.length?v[v.length-1]:'');
+    }).catch(function(){set('');});
+  }catch(e){set('');}
+}
+function renderAbout(){
+  document.getElementById('ab-ver').textContent=APP_VERSION;
+  document.getElementById('ab-date').textContent=APP_DATE;
+  var standalone=navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+  document.getElementById('ab-mode').textContent=standalone?'instalado na tela inicial':'navegador';
+  document.getElementById('ab-log').innerHTML=CHANGELOG.map(function(c){
+    return '<div class="pitem" style="cursor:default"><span class="logv">'+c[0]+'</span><span class="pf">'+esc(c[1])+'</span></div>';}).join('');
+  var app=document.querySelector('.app').getBoundingClientRect();
+  document.getElementById('ab-screen').textContent='Tela '+screen.width+'×'+screen.height+' · janela '+window.innerWidth+'×'+window.innerHeight+' · app '+Math.round(app.width)+'×'+Math.round(app.height)+' (pontos).';
+  abCache();
+}
+function abUpdate(){
+  var btn=document.getElementById('ab-update');
+  if(!('serviceWorker' in navigator)){abMsg('Neste modo não há versão offline: você já vê a versão publicada.');return;}
+  btn.disabled=true; abMsg('Procurando atualização…');
+  navigator.serviceWorker.getRegistration().then(function(r){
+    if(!r){btn.disabled=false; abMsg('Modo offline não ativo aqui: você já vê a versão publicada.'); return;}
+    var reloading=false;
+    navigator.serviceWorker.addEventListener('controllerchange',function(){ if(!reloading){reloading=true; location.reload();} });
+    return r.update().then(function(){
+      var w=r.installing||r.waiting;
+      if(w){ abMsg('Versão nova encontrada. Recarregando…'); if(w.state==='activated') location.reload(); }
+      else { btn.disabled=false; abMsg('Nenhuma versão nova no servidor. Recarregando para garantir…'); setTimeout(function(){location.reload();},600); }
+    });
+  }).catch(function(){btn.disabled=false; abMsg('Sem conexão. Tente de novo com internet.');});
+}
+
+/* ---------- jam: base gerada ---------- */
+var NOISE=null;
+function noiseBuf(){ if(NOISE) return NOISE; var n=AC.sampleRate*.5|0, b=AC.createBuffer(1,n,AC.sampleRate), d=b.getChannelData(0); for(var i=0;i<n;i++) d[i]=Math.random()*2-1; return (NOISE=b); }
+function kick(t){ var o=AC.createOscillator(), g=AC.createGain(); o.frequency.setValueAtTime(130,t); o.frequency.exponentialRampToValueAtTime(42,t+.13);
+  g.gain.setValueAtTime(.9,t); g.gain.exponentialRampToValueAtTime(.001,t+.22); o.connect(g); g.connect(OUT); o.start(t); o.stop(t+.25); }
+function snare(t){ var s=AC.createBufferSource(), f=AC.createBiquadFilter(), g=AC.createGain(); s.buffer=noiseBuf(); f.type='highpass'; f.frequency.value=1400;
+  g.gain.setValueAtTime(.32,t); g.gain.exponentialRampToValueAtTime(.001,t+.16); s.connect(f); f.connect(g); g.connect(OUT); s.start(t); s.stop(t+.18);
+  var o=AC.createOscillator(), og=AC.createGain(); o.type='triangle'; o.frequency.value=190; og.gain.setValueAtTime(.18,t); og.gain.exponentialRampToValueAtTime(.001,t+.08); o.connect(og); og.connect(OUT); o.start(t); o.stop(t+.1); }
+function hat(t,acc){ var s=AC.createBufferSource(), f=AC.createBiquadFilter(), g=AC.createGain(); s.buffer=noiseBuf(); f.type='highpass'; f.frequency.value=7500;
+  g.gain.setValueAtTime(acc?.13:.07,t); g.gain.exponentialRampToValueAtTime(.001,t+.045); s.connect(f); f.connect(g); g.connect(OUT); s.start(t,Math.random()*.3); s.stop(t+.06); }
+function bassNote(m,t,dur){ var o=AC.createOscillator(), f=AC.createBiquadFilter(), g=AC.createGain(); o.type='triangle'; o.frequency.value=mtof(m);
+  f.type='lowpass'; f.frequency.value=700; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.42,t+.012); g.gain.setTargetAtTime(.25,t+.05,.1); g.gain.setTargetAtTime(0,t+dur*.85,.03);
+  o.connect(f); f.connect(g); g.connect(OUT); o.start(t); o.stop(t+dur+.2); }
+function gtrNote(m,t,dur){ var o=AC.createOscillator(), f=AC.createBiquadFilter(), g=AC.createGain(); o.type='sawtooth'; o.frequency.value=mtof(m);
+  f.type='lowpass'; f.frequency.setValueAtTime(2200,t); f.frequency.exponentialRampToValueAtTime(500,t+.12); f.Q.value=2;
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.09,t+.006); g.gain.exponentialRampToValueAtTime(.001,t+Math.min(dur,.22));
+  o.connect(f); f.connect(g); g.connect(OUT); o.start(t); o.stop(t+.3); }
+function bluesKeyPc(){ return (((keyOffset()+7)%12)+12)%12; }
+function chordRoot(fn){ return (bluesKeyPc()+({I:0,IV:5,V:7})[fn])%12; }
+function chordLabel(fn){ return pcName(chordRoot(fn))+'7'; }
+function swingPos(b){ if(!S.swing) return b; var w=Math.floor(b), fr=b-w; return w+(fr<.5?fr*4/3:2/3+(fr-.5)*2/3); }
+/* eventos de um ciclo de 12 compassos, em tempos (0..48) */
+function jamEvents(bars){
+  var ev=[], run=0;
+  FORM.forEach(function(fn,bi){
+    var b0=bi*4, r=chordRoot(fn), bass=36+r; if(bass<40) bass+=12;
+    run=(bi>0&&FORM[bi-1]===fn)?run+1:0;
+    if(S.jBack){
+      for(var e=0;e<8;e++){ (function(beat,acc){ ev.push({b:beat,fn:function(t){hat(t,acc);}}); })(b0+e*.5,e%2===0); }
+      [0,2].forEach(function(x){ ev.push({b:b0+x,fn:function(t){kick(t);}}); });
+      ev.push({b:b0+2.5,fn:function(t){kick(t);}});
+      [1,3].forEach(function(x){ ev.push({b:b0+x,fn:function(t){snare(t);}}); });
+      var line=run%2===0?[0,4,7,9]:[10,9,7,4];
+      line.forEach(function(iv,q){ ev.push({b:b0+q,len:1,fn:function(t,d){bassNote(bass+iv,t,d);}}); });
+      var g0=bass+12, six=run%2===0?[7,7,9,9,7,7,9,9]:[7,7,9,9,10,10,9,9];
+      six.forEach(function(iv,e){ ev.push({b:b0+e*.5,len:.5,fn:function(t,d){gtrNote(g0,t,d); gtrNote(g0+iv,t,d);}}); });
+    }
+    ev.push({b:b0,bar:bi});
+    if(bars){ var pos=b0; bars[bi].forEach(function(tok){ if(tok.bar) return; var tk=tok, at=pos;
+      ev.push({b:at,len:tk.dur,cell:tk._cell,fn:S.jGuide&&!tk.rest?function(t,d){playTok(tk,t,d);}:null}); pos+=tk.dur; }); }
+  });
+  ev.sort(function(a,b){return a.b-b.b;});
+  return ev;
+}
+var J={on:false,ev:null,i:0,loop0:0,spb:.7,timer:0,raf:0,q:[],curCell:null,curBar:-1,lock:null};
+function jamPlay(){
+  stop(); ac();
+  var c=current.jam; if(!c) return;
+  J.spb=60/S.bpm; var t0=AC.currentTime+.15;
+  for(var k=0;k<4;k++) hat(t0+k*J.spb,true), click(t0+k*J.spb,k===0);
+  J.loop0=t0+4*J.spb; J.ev=jamEvents(c.bars); J.i=0; J.q=[]; J.on=true;
+  J.timer=setInterval(jamTick,25); jamTick(); J.raf=requestAnimationFrame(jamDraw); setIcon();
+  try{ if(navigator.wakeLock) navigator.wakeLock.request('screen').then(function(l){J.lock=l;}).catch(function(){}); }catch(e){}
+}
+function jamTime(b){ return J.loop0+swingPos(b)*J.spb; }
+function jamTick(){
+  if(!J.on||J.on==='ending') return;
+  while(true){
+    var e=J.ev[J.i], t=jamTime(e.b);
+    if(t>AC.currentTime+.15) break;
+    if(e.fn){ var d=e.len?jamTime(e.b+e.len)-t:0; e.fn(t,d); }
+    if(e.bar!=null||e.cell) J.q.push({t:t,bar:e.bar,cell:e.cell});
+    J.i++;
+    if(J.i>=J.ev.length){
+      if(!S.loop){ J.endAt=jamTime(48); J.i=0; J.on='ending'; break; }
+      J.loop0=jamTime(48); J.spb=60/S.bpm; J.ev=jamEvents(current.jam.bars); J.i=0;
+    }
+  }
+}
+function jamDraw(){
+  if(!J.on) return;
+  var t=AC.currentTime;
+  while(J.q.length&&J.q[0].t<=t){
+    var e=J.q.shift();
+    if(e.bar!=null){ var ch=document.querySelectorAll('#j-chart div'), jb=document.querySelectorAll('#st-jam .jbar');
+      if(J.curBar>=0){ ch[J.curBar]&&ch[J.curBar].classList.remove('on'); jb[J.curBar]&&jb[J.curBar].classList.remove('on'); }
+      J.curBar=e.bar; ch[e.bar]&&ch[e.bar].classList.add('on'); jb[e.bar]&&jb[e.bar].classList.add('on'); }
+    if(e.cell){ if(J.curCell) J.curCell.classList.remove('on'); J.curCell=e.cell; e.cell.classList.add('on'); }
+  }
+  if(J.on==='ending'&&t>=J.endAt){ jamStop(); return; }
+  J.raf=requestAnimationFrame(jamDraw);
+}
+function jamStop(){
+  if(J.timer) clearInterval(J.timer); if(J.raf) cancelAnimationFrame(J.raf);
+  J.on=false; J.timer=0; J.q=[];
+  if(J.curCell) J.curCell.classList.remove('on'); J.curCell=null;
+  document.querySelectorAll('#j-chart div.on, #st-jam .jbar.on').forEach(function(x){x.classList.remove('on');}); J.curBar=-1;
+  if(J.lock){try{J.lock.release();}catch(e){} J.lock=null;}
+  setIcon();
+}
+/* Bases do YouTube por tom do blues (pc 0=C ... 11=B). Encontradas por busca em 07/11/2026; o título de
+   cada vídeo indica o tom. Vídeos podem sair do ar ou bloquear a incorporação: sempre há o link para abrir no YouTube. */
+var YT_TRACKS={
+  0:[['CQalXNWEXvc','Blues shuffle guitar + harmonica jam track in C','shuffle, com gaita em mente'],['3nM_MsXdm6E','Chicago Style Blues Backing Track (C) · Quist','Chicago shuffle'],['hZA-2dYxJLQ','Blues Shuffle Backing Track in C','shuffle']],
+  1:[['GdhFjBIiIXE','Play Along C# (Db) Blues, 12 bars','12 compassos'],['8DopNQHSDMI','Db Concert 12 Bar Blues Professional Backing Track','banda completa'],['f1bh_5qlw-s','C# (Db) Slow Blues Backing Track','lento, 46 bpm']],
+  2:[['w6Zgr83lHcM','Chicago Style Blues Backing Track (D) · Quist','Chicago shuffle'],['L18Qq4q7XK0','Blues Shuffle in D, medium fast','shuffle médio-rápido'],['ch_vD_090jk','B.B. King Style Blues Backing Track (D) · Quist','estilo B.B. King']],
+  3:[['pEFz1od8dUg','(Eb) 12 bar Blues Jam Track: Guitar / Sax / Harmonica / Piano','12 compassos, para gaita'],['IMbD68BMb60','Eb Medium Tempo 12 Bar Blues (120 bpm)','médio, 120 bpm'],['5HJZObTrByU','Eb Slow 12 Bar Blues (60 bpm)','lento, 60 bpm']],
+  4:[['V1w_n62xZzg','Acoustic shuffle in E (harmonica in A)','shuffle acústico, para gaita em A'],['cHuWmpfQ2QI','Ice B. Mojo Blues in E (harmonica in A)','para gaita em A'],['8X-MbkJRp_k','Shuffle in E for Guitar & Harmonica','shuffle, banda completa']],
+  5:[['tukIZf2PlAM','Jam Track: Blues Shuffle in F, 110 bpm','shuffle, 110 bpm'],['xcmTwlIg6H8','Slow Blues Backing Track (F) · Quist','lento']],
+  6:[['cZRUXNRfAAo','Slow Blues Backing Track in F#','lento'],['l_G87DjGuOM','Slow Blues Jam in F#','lento']],
+  7:[['NP7XefeRXSM','12 Bar Blues Slow Harmonica Backing Track in G','lento, para gaita em C'],['Mqr-pjJwmhM','12 Bar Blues Fast Swing Harmonica Backing Track in G','swing rápido, para gaita'],['8GcBJBMZyfU','Acoustic Shuffle in G (Harmonica in C)','shuffle acústico']],
+  8:[['-OzwTSQBLU8','(Ab) 12 bar Blues Jam Track: Guitar / Sax / Harmonica / Piano','12 compassos, para gaita'],['jkrGZOJQa_w','Texas Blues Shuffle in Ab','shuffle texano, 124 bpm'],['LRhHLYK2ob8','Slow Blues Backing Track in Ab','lento']],
+  9:[['Em_sGEO5dC8','12 Bar Blues Medium Shuffle Harmonica Backing Track in A','shuffle médio, para gaita em D'],['K4_mUeT9tKw','Blues Backing Track in A (55 bpm)','lento, 55 bpm'],['FouqGv_C5aE','Rhumba blues backing track in A','rumba blues']],
+  10:[['GpTr1lfG0WY','Bb Medium Tempo 12 Bar Blues (120 bpm)','médio, 120 bpm'],['cGoKUFdeyG4','Bb Slow 12 Bar Blues (60 bpm)','lento, 60 bpm'],['n7iK_47UxFA','BB King Blues Shuffle in Bb','shuffle estilo B.B. King']],
+  11:[['plevYvTnnTE','Blues backing track in B, 12 bar shuffle (guitar & harmonica)','shuffle, para gaita em E'],['kvW4hTG9dk8','12 Bar B Blues (B major, 90 bpm)','shuffle, 90 bpm'],['jvsqXTH-mjs','Fast Chicago Blues Shuffle in B (120 bpm)','Chicago rápido']]
+};
+function ytId(u){
+  var m=String(u||'').match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})/);
+  return m?m[1]:null;
+}
+function renderYt(){
+  var pc=bluesKeyPc(), k=pcName(pc), own=S.yt[pc]||null, list=(YT_TRACKS[pc]||[]).slice();
+  if(own) list.unshift([own,'Seu vídeo favorito','link que você salvou']);
+  if(!S.ytSel||typeof S.ytSel!=='object') S.ytSel={};
+  var sel=S.ytSel[pc]; if(!list.some(function(x){return x[0]===sel;})) sel=null;
+  document.getElementById('yt-key').textContent='blues em '+k;
+  var a=document.getElementById('yt-search');
+  a.href='https://www.youtube.com/results?search_query='+encodeURIComponent('blues backing track in '+k+' harmonica');
+  a.textContent='Buscar mais bases em '+k;
+  document.getElementById('yt-url').value=own?'https://youtu.be/'+own:'';
+  var box=document.getElementById('yt-player');
+  var h='<div class="plist">'+list.map(function(t){
+    return '<button type="button" class="pitem" data-yt="'+t[0]+'" aria-pressed="'+(t[0]===sel)+'"><span class="pn">'+esc(t[1])+'</span><span class="pf">'+esc(t[2])+'</span><span class="badge pk">'+(t[0]===sel?'tocando':'▶ ouvir')+'</span></button>';
+  }).join('')+'</div>';
+  if(sel){
+    h+='<div class="ytframe"><iframe src="https://www.youtube-nocookie.com/embed/'+sel+'?playsinline=1&rel=0&autoplay=1" title="Base de blues do YouTube" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>'
+      +'<p class="legend">Pause a base do app antes de tocar com o vídeo. Se o vídeo não carregar aqui, <a href="https://www.youtube.com/watch?v='+sel+'" target="_blank" rel="noopener">abra no YouTube</a>.'
+      +(own&&sel===own?' <button type="button" class="chipb" id="yt-del">Remover meu vídeo</button>':'')+'</p>';
+  }
+  box.innerHTML=h;
+  box.querySelectorAll('.pitem').forEach(function(b){b.addEventListener('click',function(){
+    stop(); S.ytSel[pc]=S.ytSel[pc]===b.dataset.yt?null:b.dataset.yt; save(); renderYt();
+  });});
+  var del=document.getElementById('yt-del');
+  if(del) del.addEventListener('click',function(){ delete S.yt[pc]; S.ytSel[pc]=null; save(); renderYt(); });
+}
+function renderJam(){
+  var hk=KEYS[S.key][0], bk=pcName(bluesKeyPc());
+  document.getElementById('j-title').textContent='Blues em '+bk+' com gaita em '+hk;
+  document.getElementById('j-key').textContent=chordLabel('I')+' · '+chordLabel('IV')+' · '+chordLabel('V');
+  document.getElementById('j-chart').innerHTML=FORM.map(function(fn,i){
+    return '<div class="'+(fn==='IV'?'iv':fn==='V'?'v':'')+'"><b>'+chordLabel(fn)+'</b><small>'+(i+1)+' · '+fn+'</small></div>';}).join('');
+  [['j-back','jBack'],['j-guide','jGuide'],['j-swing','swing']].forEach(function(x){document.getElementById(x[0]).setAttribute('aria-pressed',String(!!S[x[1]]));});
+  var c=CHORUSES.filter(function(x){return x.id===S.sel.jam;})[0]||CHORUSES[0], bars=chorusBars(c);
+  var st=document.getElementById('st-jam');
+  st.innerHTML='<div class="card-h"><h3>'+esc(c.title)+'</h3><span class="badge">Nível '+c.level+' · '+LEVELS[c.level]+'</span></div><p class="desc">'+esc(c.d)+'</p>'
+    +'<p class="legend">Andamento sugerido: '+c.bpm+' bpm. Na gaita em '+hk+', tudo soa em '+bk+'.</p><div class="jbars" id="j-bars"></div>'+LEGEND;
+  var holder=document.getElementById('j-bars');
+  bars.forEach(function(toks,bi){
+    var box=document.createElement('div'); box.className='jbar';
+    box.innerHTML='<div class="jh"><span>'+(bi+1)+'</span><b>'+chordLabel(FORM[bi])+'</b></div>';
+    var tab=renderTabEl(toks,true); tab.seq.forEach(function(t,i){t._cell=tab.cells[i];});
+    box.appendChild(tab.el); holder.appendChild(box);
+  });
+  current={jam:{bars:bars}};
+  var lv=0, html='';
+  CHORUSES.forEach(function(x){
+    if(x.level!==lv){lv=x.level; html+='<p class="lvl">Nível '+lv+' · '+LEVELS[lv]+'</p>';}
+    var preview=parseTab(x.bars[0]).map(label).join(' ');
+    html+='<button type="button" class="pitem" data-id="'+x.id+'" aria-pressed="'+(x.id===c.id)+'"><span class="pn">'+esc(x.title)+'</span><span class="pf">'+esc(preview)+' …</span><span class="badge pk">'+x.bpm+' bpm</span></button>';
+  });
+  var ls=document.getElementById('ls-jam'); ls.innerHTML=html;
+  ls.querySelectorAll('.pitem').forEach(function(b){b.addEventListener('click',function(){
+    var was=!!J.on, n=CHORUSES.filter(function(x){return x.id===b.dataset.id;})[0];
+    S.sel.jam=n.id; setBpm(n.bpm); save(); renderJam(); if(was) jamPlay();
+    document.getElementById('main').scrollTo({top:0,behavior:'smooth'});
+  });});
+  renderYt();
+}
+
+/* ---------- navegação ---------- */
+var VIEW_IDS=['gaita','licoes','riffs','jam','musicas','sobre'];
+function renderAny(name){ if(name==='gaita') renderHarp(); else if(name==='sobre') renderAbout(); else if(name==='jam') renderJam(); else renderList(name); }
+function show(name){
+  if(VIEW_IDS.indexOf(name)<0) name='gaita';
+  stop(); S.view=name; save();
+  VIEW_IDS.forEach(function(v){document.getElementById('v-'+v).hidden=v!==name;});
+  document.querySelectorAll('.nav button').forEach(function(b){ if(b.dataset.view===name) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+  document.getElementById('transport').hidden=name==='gaita'||name==='sobre';
+  document.getElementById('infobtn').setAttribute('aria-pressed',String(name==='sobre'));
+  if(name==='jam'){ var jc=CHORUSES.filter(function(x){return x.id===S.sel.jam;})[0]||CHORUSES[0]; setBpm(jc.bpm); }
+  if(VIEWS[name]){ var it=VIEWS[name].items.filter(function(x){return x.id===S.sel[name];})[0]||VIEWS[name].items[0]; setBpm(it.bpm); }
+  renderAny(name);
+  document.getElementById('main').scrollTop=0;
+}
+
+/* ---------- montagem ---------- */
+var ksel=document.getElementById('key');
+ksel.innerHTML=KEYS.map(function(k,i){return '<option value="'+i+'">'+k[0]+'</option>';}).join('');
+ksel.value=String(S.key);
+ksel.addEventListener('change',function(){ var was=P.on; S.key=+ksel.value; save(); renderAny(S.view); if(was&&VIEWS[S.view]) startCurrent(); });
+document.getElementById('songkey').addEventListener('change',function(e){S.songKey=+e.target.value; save(); renderWhich();});
+document.querySelectorAll('#o-nota button').forEach(function(b){b.addEventListener('click',function(){S.nota=b.dataset.v; save(); renderHarp();});});
+document.querySelectorAll('.nav button').forEach(function(b){b.addEventListener('click',function(){
+  try{history.replaceState(null,'','#'+b.dataset.view);}catch(e){} show(b.dataset.view);
+});});
+window.addEventListener('hashchange',function(){show(location.hash.slice(1));});
+document.getElementById('infobtn').addEventListener('click',function(){
+  var to=S.view==='sobre'?'gaita':'sobre'; try{history.replaceState(null,'','#'+to);}catch(e){} show(to);
+});
+document.getElementById('ab-update').addEventListener('click',abUpdate);
+var bpm=document.getElementById('bpm');
+bpm.addEventListener('input',function(){S.bpm=+bpm.value; document.getElementById('bpmv').textContent=S.bpm; save();});
+function tg(id,key){var b=document.getElementById(id); b.setAttribute('aria-pressed',String(S[key])); b.addEventListener('click',function(){S[key]=!S[key]; b.setAttribute('aria-pressed',String(S[key])); save();});}
+tg('t-metro','metro'); tg('t-loop','loop');
+document.getElementById('play').addEventListener('click',function(){
+  if(P.on||J.on){ stop(); return; }
+  if(S.view==='jam') jamPlay(); else if(current.seq) startCurrent();
+});
+[['j-back','jBack'],['j-guide','jGuide'],['j-swing','swing']].forEach(function(x){
+  document.getElementById(x[0]).addEventListener('click',function(){ S[x[1]]=!S[x[1]]; save(); var was=!!J.on; renderJam(); if(was) jamPlay(); });
+});
+document.getElementById('yt-save').addEventListener('click',function(){
+  var id=ytId(document.getElementById('yt-url').value);
+  if(!id){ document.getElementById('yt-url').setCustomValidity('Link do YouTube não reconhecido'); document.getElementById('yt-url').reportValidity(); return; }
+  document.getElementById('yt-url').setCustomValidity(''); S.yt[bluesKeyPc()]=id; if(!S.ytSel) S.ytSel={}; S.ytSel[bluesKeyPc()]=id; save(); renderYt();
+});
+document.addEventListener('visibilitychange',function(){ if(document.hidden) stop(); });
+setBpm(S.bpm);
+show(location.hash?location.hash.slice(1):(S.view==='sobre'?'gaita':S.view));
+})();
+</script>
+
+<script>
+// iOS, app na tela inicial com barra de status translúcida: a janela informada é mais curta
+// que a tela (falta a barra de status). Estica o contêiner .app até a altura física.
+(function () {
+  var app = document.querySelector('.app');
+  if (!app) return;
+  function fit() {
+    var standalone = navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+    var portrait = !window.matchMedia || matchMedia('(orientation: portrait)').matches;
+    var sh = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+    if (standalone && sh > window.innerHeight + 1) { app.style.bottom = 'auto'; app.style.height = sh + 'px'; }
+    else { app.style.bottom = ''; app.style.height = ''; }
+  }
+  fit();
+  window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', function () { setTimeout(fit, 300); });
+})();
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+}
+</script>
+</body>
+</html>
